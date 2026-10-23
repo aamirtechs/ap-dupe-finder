@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP Dupe Finder: Find Duplicate Invoices Before You Pay Twice</title>
+<meta name="description" content="Upload an AP ledger CSV and find the invoices you will otherwise pay twice, including near-duplicates with reformatted numbers like INV-1001 vs INV1001.">
+<meta name="keywords" content="find duplicate invoices Excel, duplicate payment detection tool, duplicate invoice checker CSV, accounts payable duplicate audit">
+<meta name="author" content="Amir Hussain">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://aamirtechs.github.io/ap-dupe-finder/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0b1f3a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AP Dupe Finder: Find Duplicate Invoices Before You Pay Twice">
+<meta property="og:description" content="Upload an AP ledger CSV and find the invoices you will otherwise pay twice, including near-duplicates with reformatted numbers like INV-1001 vs INV1001.">
+<meta property="og:url" content="https://aamirtechs.github.io/ap-dupe-finder/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AP Dupe Finder">
+<meta name="twitter:description" content="Find exact and near-duplicate invoices in an AP ledger CSV, entirely in your browser. Finance data never uploads.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"AP Dupe Finder","applicationCategory":"BusinessApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Amir Hussain","url":"https://aamirtechs.com"},"url":"https://aamirtechs.github.io/ap-dupe-finder/"}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#0b1f3a;--navy2:#122c50;--gold:#d4a72c;--ink:#16233a;--muted:#5a6a84;--line:#e3e9f2;--bg:#f6f8fb;--card:#ffffff}
+*{box-sizing:border-box}body{margin:0;font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;padding:44px 20px 34px;text-align:center}
+header h1{font-family:Sora,sans-serif;font-size:2.2rem;margin:0 0 10px}header h1 span{color:var(--gold)}
+header p{max-width:700px;margin:0 auto 16px;opacity:.92}
+.stats{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.stats span{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 14px;font-size:.85rem}
+main{max-width:1020px;margin:0 auto;padding:24px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:0 6px 24px rgba(11,31,58,.06)}
+label{font-weight:700;display:block;margin:14px 0 6px}input[type=text],input[type=number],input[type=file],select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.btn-run{background:var(--gold);color:var(--navy);border:0;border-radius:10px;padding:12px 22px;cursor:pointer;font:inherit;font-weight:800;margin-top:16px}
+.btn-sec{background:var(--navy);color:#fff;border:0;border-radius:10px;padding:10px 18px;cursor:pointer;font:inherit;margin:8px 6px 0 0}
+.privacy{color:var(--muted);font-size:.9rem;margin-top:10px}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.92rem}td,th{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+.pair{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}.pair .vs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+section.features{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 24px;margin-top:20px}
+footer{background:var(--navy);color:#dbe4f0;text-align:center;padding:26px 16px;font-size:.92rem}footer a{color:var(--gold)}
+.msg{margin-top:12px;white-space:pre-wrap;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+<h1>AP <span>Dupe Finder</span></h1>
+<p>Upload an AP ledger CSV and find the invoices you will otherwise pay twice, including near-duplicates with reformatted numbers like INV-1001 vs INV1001.</p>
+<div class="stats"><span>Free</span><span>100% in your browser</span><span>No sign-up</span></div>
+</header>
+<main>
+<div class="card">
+<label for="file">AP ledger CSV file</label>
+<input type="file" id="file" accept=".csv,text/csv">
+<label for="paste">Or paste CSV</label>
+<textarea id="paste" rows="6" placeholder="vendor,invoice,date,amount,currency"></textarea>
+<button class="btn-sec" id="sample">Load sample data</button>
+<div class="cols" id="mapping" style="display:none">
+<div><label for="mVendor">Vendor column</label><select id="mVendor"></select></div>
+<div><label for="mInvoice">Invoice number column</label><select id="mInvoice"></select></div>
+<div><label for="mDate">Date column</label><select id="mDate"></select></div>
+<div><label for="mAmount">Amount column</label><select id="mAmount"></select></div>
+<div><label for="mCurrency">Currency column (optional)</label><select id="mCurrency"></select></div>
+</div>
+<div class="cols">
+<div><label for="tolPct">Amount tolerance %</label><input type="number" id="tolPct" value="0" step="0.5" min="0"></div>
+<div><label for="dateWin">Date window (days)</label><input type="number" id="dateWin" value="7" step="1" min="0"></div>
+<div><label for="threshold">Near-duplicate score threshold</label><input type="number" id="threshold" value="60" step="5" min="0" max="100"></div>
+</div>
+<p class="privacy">Runs 100% in your browser. Your files never leave this device.</p>
+<button class="btn-run" id="run">Find duplicates</button>
+<button class="btn-sec" id="export" disabled>Export suspects CSV</button>
+<div class="msg" id="msg" role="status"></div>
+<div id="results"></div>
+</div>
+<section class="features">
+<h2>How it works</h2>
+<ul>
+<li>Map your CSV columns once: vendor, invoice number, date, amount and currency. Headers are auto-detected.</li>
+<li>Exact-duplicate groups match on normalised vendor, invoice number, amount, date and currency.</li>
+<li>Near-duplicate scoring catches reformatted numbers (INV-1001 vs INV1001), vendor name variants, amounts within tolerance and dates inside your window.</li>
+<li>Review suspect pairs side by side with the match reason for each pair.</li>
+<li>Export a suspects CSV for your AP review. All of it runs locally, because a finance file should never be uploaded to a random server.</li>
+</ul>
+</section>
+</main>
+<footer>
+<p>Built by Amir Hussain, operations manager and founder of <a href="https://aamirtechs.com" target="_blank" rel="noopener">AamirTechs: operations, customer support and e-commerce services</a>.</p>
+<p><a href="https://github.com/aamirtechs" target="_blank" rel="noopener">More open source tools on GitHub</a></p>
+</footer>
+<script src="src/logic.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let rawRows = [], lastExact = [], lastNear = [];
+function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+function setRows(text) {
+  rawRows = ApDupeFinder.parseCSV(text);
+  if (!rawRows.length) { $("msg").textContent = "No rows found. Check the CSV has a header row."; return; }
+  const headers = Object.keys(rawRows[0]).filter((k) => k !== "_row");
+  const detected = ApDupeFinder.detectColumns(headers);
+  [["mVendor", detected.vendor], ["mInvoice", detected.invoice], ["mDate", detected.date], ["mAmount", detected.amount], ["mCurrency", detected.currency]].forEach(([id, val]) => {
+    const sel = $(id); sel.innerHTML = "";
+    if (id === "mCurrency") { const o = document.createElement("option"); o.value = ""; o.textContent = "(none)"; sel.appendChild(o); }
+    headers.forEach((h) => { const o = document.createElement("option"); o.value = h; o.textContent = h; if (h === val) o.selected = true; sel.appendChild(o); });
+  });
+  $("mapping").style.display = "grid";
+  $("msg").textContent = "Loaded " + rawRows.length + " row(s). Confirm the column mapping, then run.";
+}
+$("file").addEventListener("change", async (e) => { if (e.target.files[0]) setRows(await e.target.files[0].text()); });
+$("paste").addEventListener("change", () => { if ($("paste").value.trim()) setRows($("paste").value); });
+$("sample").addEventListener("click", () => {
+  const sample = "vendor,invoice,date,amount,currency\nAcme Supplies Inc,INV-1001,2026-01-01,500,USD\nAcme Supplies,INV1001,2026-01-03,500,USD\nBeta Traders LLC,B-200,2026-01-05,750,USD\nBeta Traders,B-200,2026-01-05,750,USD\nGamma Office Co,G-55,2026-01-09,120,USD";
+  $("paste").value = sample; setRows(sample);
+});
+$("run").addEventListener("click", () => {
+  if (!rawRows.length && $("paste").value.trim()) setRows($("paste").value);
+  if (!rawRows.length) { $("msg").textContent = "Load a CSV first."; return; }
+  const mapping = { vendor: $("mVendor").value, invoice: $("mInvoice").value, date: $("mDate").value, amount: $("mAmount").value, currency: $("mCurrency").value || null };
+  const rows = rawRows.map((r) => ApDupeFinder.canonicalRow(r, mapping));
+  const opts = { amountTolerancePct: parseFloat($("tolPct").value) || 0, dateWindowDays: parseInt($("dateWin").value, 10) || 0, threshold: parseInt($("threshold").value, 10) || 60 };
+  lastExact = ApDupeFinder.findExactDuplicates(rows);
+  lastNear = ApDupeFinder.findNearDuplicates(rows, opts);
+  let html = "<h3>Exact duplicate groups: " + lastExact.length + "</h3>";
+  lastExact.forEach((g) => { html += "<p><strong>" + esc(g.reason) + "</strong></p><table><tr><th>Row</th><th>Vendor</th><th>Invoice</th><th>Date</th><th>Amount</th></tr>" + g.members.map((m) => "<tr><td>" + m._row + "</td><td>" + esc(m.vendor) + "</td><td>" + esc(m.invoice) + "</td><td>" + esc(m.date) + "</td><td>" + m.amount + " " + esc(m.currency) + "</td></tr>").join("") + "</table>"; });
+  html += "<h3>Near-duplicate pairs: " + lastNear.length + "</h3>";
+  lastNear.forEach((p) => {
+    html += '<div class="pair"><strong>Score ' + p.score + "/100</strong><p>" + esc(p.reasons.join("; ")) + '</p><div class="vs"><div>Row ' + p.a._row + "<br>" + esc(p.a.vendor) + "<br>" + esc(p.a.invoice) + "<br>" + esc(p.a.date) + "<br>" + p.a.amount + " " + esc(p.a.currency) + '</div><div>Row ' + p.b._row + "<br>" + esc(p.b.vendor) + "<br>" + esc(p.b.invoice) + "<br>" + esc(p.b.date) + "<br>" + p.b.amount + " " + esc(p.b.currency) + "</div></div></div>";
+  });
+  if (!lastExact.length && !lastNear.length) html += "<p>No duplicates found at these settings. Try a wider date window or a lower threshold.</p>";
+  $("results").innerHTML = html;
+  $("export").disabled = !(lastExact.length || lastNear.length);
+  const atRisk = lastExact.reduce((s, g) => s + g.members.slice(1).reduce((x, m) => x + (m.amount || 0), 0), 0);
+  $("msg").textContent = "Checked " + rows.length + " rows. Exact groups: " + lastExact.length + ". Near pairs: " + lastNear.length + ". Duplicate amount at risk in exact groups: " + atRisk.toFixed(2) + ".";
+});
+$("export").addEventListener("click", () => {
+  const csv = ApDupeFinder.suspectsToCSV(lastExact, lastNear);
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = "ap-dupe-suspects.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+</script>
+</body>
+</html>
